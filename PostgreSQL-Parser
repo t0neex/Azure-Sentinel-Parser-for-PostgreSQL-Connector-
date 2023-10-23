@@ -1,0 +1,18 @@
+PostgreSQL_CL
+| extend StatementIndex = case(
+    RawData contains_cs "STATEMENT:", toint(indexof(RawData, "STATEMENT:")),
+    RawData contains_cs "statement:", toint(indexof(RawData, "statement:")),
+    RawData contains_cs "DETAIL:", toint(indexof(RawData, "DETAIL:")),
+    RawData contains_cs "detail:", toint(indexof(RawData, "detail:")),
+        RawData contains_cs "FATAL:", toint(indexof(RawData, "FATAL:")),
+    RawData contains_cs "fatal:", toint(indexof(RawData, "fatal:")),
+        RawData contains_cs "ERROR:", toint(indexof(RawData, "ERROR:")),
+    RawData contains_cs "error:", toint(indexof(RawData, "error:")),
+       RawData contains_cs "LOG:", toint(indexof(RawData, "LOG:")),
+    RawData contains_cs "log:", toint(indexof(RawData, "log:")),
+    -1)
+| extend Statement = iif(StatementIndex >= 0, substring(RawData, StatementIndex), "")
+| extend DatabaseName = tostring(extract(@"\@(\w+)\b", 1, RawData))
+| extend User = tostring(extract(@"(\w+)@", 1, RawData))
+| project TimeGenerated, Statement, User, DatabaseName, Computer, RawData, Type
+
