@@ -1,0 +1,21 @@
+AzureDiagnostics
+| extend StatementIndex = case(
+    Message contains_cs "STATEMENT:", toint(indexof(Message, "STATEMENT:")),
+    Message contains_cs "statement:", toint(indexof(Message, "statement:")),
+    Message contains_cs "DETAIL:", toint(indexof(Message, "DETAIL:")),
+    Message contains_cs "detail:", toint(indexof(Message, "detail:")),
+     Message contains_cs "FATAL:", toint(indexof(Message, "FATAL:")),
+    Message contains_cs "fatal:", toint(indexof(Message, "fatal:")),
+        Message contains_cs "ERROR:", toint(indexof(Message, "ERROR:")),
+    Message contains_cs "error:", toint(indexof(Message, "error:")),
+       Message contains_cs "LOG:", toint(indexof(Message, "LOG:")),
+    Message contains_cs "log:", toint(indexof(Message, "log:")),
+    -1)
+| extend Statement = iif(StatementIndex >= 0, substring(Message, StatementIndex), "")
+| extend UserIndex = indexof(Message, "user=")
+| extend DatabaseIndex = indexof(Message, "database=")
+| extend User = trim(' ', substring(Message, UserIndex + 5, DatabaseIndex - UserIndex - 6))
+| extend DatabaseName = trim(' ', tostring(split(substring(Message, DatabaseIndex + 9), ' ')[0]))
+| where Statement !startswith "ERROR:"
+| where Statement contains "create" or Statement contains "drop" or Statement contains "alter" or Statement contains "truncate" or Statement contains "comment" or Statement contains "rename"
+| project TimeGenerated, Statement, User, DatabaseName, Computer, Message, Type
